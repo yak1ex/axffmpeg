@@ -15,7 +15,11 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <cstdlib>
+#include <cstdio>
+
+#include <sys/stat.h>
 
 #include "Spi_api.h"
 #include "resource.h"
@@ -28,6 +32,11 @@
 #define DEBUG_LOG(ARG) do { } while(0)
 #endif
 
+typedef std::pair<std::string, unsigned long> Key;
+typedef std::vector<char> Data;
+typedef std::pair<std::vector<SPI_FILEINFO>, std::vector<Data> > Value;
+std::map<Key, Value> g_cache;
+
 // Force null terminating version of strncpy
 // Return length without null terminator
 int safe_strncpy(char *dest, const char *src, std::size_t n)
@@ -37,6 +46,11 @@ int safe_strncpy(char *dest, const char *src, std::size_t n)
 	*dest = 0;
 	return i;
 }
+
+static std::string g_sFFprobePath;
+static std::string g_sFFmpegPath;
+static int g_nNumber;
+static bool g_fImages;
 
 const char* table[] = {
 	"00AM",
@@ -94,24 +108,6 @@ INT PASCAL IsSupported(LPSTR filename, DWORD dw)
 	// not reached here
 }
 
-INT GetArchiveInfoImp(LPSTR buf, DWORD len, HLOCAL *lphInf, LPSTR filename = NULL)
-{
-//ods << "GetArchiveInfoImp(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << lphInf << (filename ? filename : "NULL") << ')' << std::endl;
-
-	try {
-	} catch(std::exception &e) {
-		MessageBox(NULL, e.what(), "axffmpeg.spi", MB_OK);
-		return SPI_ERR_BROKEN_DATA;
-	} catch(...) {
-		return SPI_ERR_BROKEN_DATA;
-	}
-
-	return SPI_ERR_NO_ERROR;
-}
-
-static std::string g_sFFprobePath;
-static std::string g_sFFmpegPath;
-
 static std::pair<HANDLE, HANDLE> InvokeProcess(const std::string &sCommandLine)
 {
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
@@ -163,6 +159,119 @@ static unsigned long GetDurationByFile(LPSTR filename)
 	}
 	DEBUG_LOG(<< "GetDurationByFile(" << filename << ") : " << duration << std::endl);
 	return duration;
+}
+
+static unsigned long filesize(const char* filename)
+{
+	struct stat st;
+	stat(filename, &st);
+	return st.st_size;
+}
+
+static Key make_key(const char* filename)
+{
+	return std::make_pair(std::string(filename), filesize(filename));
+}
+
+static INT SetArchiveInfo(const std::vector<SPI_FILEINFO> &v, HLOCAL *lphInf)
+{
+	std::size_t size = v.size() * sizeof(SPI_FILEINFO);
+	std::size_t tsize = size + sizeof(SPI_FILEINFO); // for terminator
+	*lphInf = LocalAlloc(LMEM_MOVEABLE, tsize);
+	LPVOID pv = LocalLock(*lphInf);
+	ZeroMemory(pv, tsize);
+	CopyMemory(pv, &v[0], size);
+	LocalUnlock(*lphInf);
+	return SPI_ERR_NO_ERROR;
+}
+
+static time_t filetime(const char* filename)
+{
+	struct stat st;
+	stat(filename, &st);
+	return st.st_mtime;
+}
+
+static void GetPictureAtPos(std::vector<std::vector<char> > &v2, DWORD dwPos, LPSTR filename)
+{
+	DEBUG_LOG(<< "GetPictureAtPos(" << v2.size() << ',' << dwPos << ',' << filename << ')' << std::endl);
+	char szBuf[20];
+	wsprintf(szBuf, "%d:%02d:%02d", dwPos / 3600, dwPos / 60 % 60, dwPos % 60);
+	std::string s = std::string("\"") + g_sFFmpegPath + "\" -ss " + szBuf + " -i \"" + filename + "\" -v quiet -f image2pipe -frames 1 -vcodec png -";
+	std::pair<HANDLE, HANDLE> handle_pair = InvokeProcess(s);
+	v2.push_back(std::vector<char>());
+	if(handle_pair.first) {
+		DWORD dwLen;
+		std::vector<char> buf(32768);
+		while(ReadFile(handle_pair.first, &buf[0], buf.size(), &dwLen, 0)) {
+			v2.back().insert(v2.back().end(), &buf[0], &buf[0] + dwLen);
+		}
+		if(dwLen) v2.back().insert(v2.back().end(), &buf[0], &buf[0] + dwLen);
+		CloseHandle(handle_pair.first);
+		CloseHandle(handle_pair.second);
+	}
+	DEBUG_LOG(<< "GetPictureAtPos(" << filename << ") : " << v2.back().size() << std::endl);
+}
+
+static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::vector<char> > &v2, LPSTR filename)
+{
+	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
+
+	DWORD dwDuration = GetDurationByFile(filename);
+	DWORD dwDiv = g_fImages ? dwDuration / g_nNumber : g_nNumber;
+	if(dwDiv == 0) dwDiv = 1;
+	DWORD dwPos = (dwDuration - dwDuration / dwDiv * dwDiv) / 2;
+	DWORD timestamp = filetime(filename);
+
+	while(dwPos < dwDuration) {
+		GetPictureAtPos(v2, dwPos, filename);
+		SPI_FILEINFO sfi = {
+			{ 'F', 'F', 'M', 'P', 'E', 'G', '\0', '\0' },
+			dwPos,
+			v2.back().size(),
+			v2.back().size(),
+			timestamp,
+		};
+		wsprintf(sfi.filename, "%08d.png", v1.size());
+		v1.push_back(sfi);
+		dwPos += dwDiv;
+	}
+}
+
+static INT GetArchiveInfoImp(HLOCAL *lphInf, LPSTR filename)
+{
+	DEBUG_LOG(<< "GetArchiveInfoImp(" << filename << ')' << std::endl);
+
+	if(filename != NULL) {
+		DEBUG_LOG(<< "GetArchiveInfoImp - Filename specified: check cache" << std::endl);
+		Key key(make_key(filename));
+		if(g_cache.count(key) != 0) {
+			if(lphInf) SetArchiveInfo(g_cache[key].first, lphInf);
+			return SPI_ERR_NO_ERROR;
+		}
+	}
+
+	try {
+		std::vector<SPI_FILEINFO> v1;
+		std::vector<std::vector<char> > v2;
+		GetArchiveInfoImp(v1, v2, filename);
+
+		if(lphInf) SetArchiveInfo(v1, lphInf);
+
+		if(filename != NULL) {
+			DEBUG_LOG(<< "GetArchiveInfoImp - Filename specified: set cache" << std::endl);
+			Key key(make_key(filename));
+			g_cache[key].first.swap(v1);
+			g_cache[key].second.swap(v2);
+		}
+	} catch(std::exception &e) {
+		MessageBox(NULL, e.what(), "axffmpeg.spi", MB_OK);
+		return SPI_ERR_BROKEN_DATA;
+	} catch(...) {
+		return SPI_ERR_BROKEN_DATA;
+	}
+
+	return SPI_ERR_NO_ERROR;
 }
 
 INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
@@ -239,7 +348,38 @@ INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCa
 	}
 	if(GetArchiveInfo(buf, len, flag&7, 0) == SPI_ERR_NO_ERROR) {
 		DEBUG_LOG(<< "GetFile(): GetArvhiveInfo() returned" << std::endl);
-		return SPI_ERR_NOT_IMPLEMENTED;
+		Key key(make_key(buf));
+		if(g_cache.count(key) == 0) {
+			DEBUG_LOG(<< "GetFile(): " << buf << " not cached" << std::endl);
+			return SPI_ERR_INTERNAL_ERROR;
+		}
+		Value &value = g_cache[key];
+		std::size_t size = value.first.size();
+		for(std::size_t i = 0; i < size; ++i) {
+			if(value.first[i].position == std::size_t(len)) {
+				DEBUG_LOG(<< "GetFile(): position found" << std::endl);
+				if((flag>>8) & 7) { // memory
+					if(dest) {
+						DEBUG_LOG(<< "GetFile(): size: " << value.second[i].size() << " head: " << value.second[i][0] << value.second[i][1] << value.second[i][2] << value.second[i][3] << std::endl);
+						HANDLE *phResult = reinterpret_cast<HANDLE*>(dest);
+						*phResult = LocalAlloc(LMEM_MOVEABLE, value.second[i].size());
+						void* p = LocalLock(*phResult);
+						CopyMemory(p, &value.second[i][0], value.second[i].size());
+						LocalUnlock(*phResult);
+						return SPI_ERR_NO_ERROR;
+					}
+					return SPI_ERR_INTERNAL_ERROR;
+				} else { // file
+					std::string s(dest);
+					s += '\\';
+					s += value.first[i].filename;
+					FILE *fp = std::fopen(s.c_str(), "wb");
+					fwrite(&value.second[i][0], value.second[i].size(), 1, fp);
+					fclose(fp);
+					return SPI_ERR_NO_ERROR;
+				}
+			}
+		}
 	}
 	DEBUG_LOG(<< "GetFile(): position not found" << std::endl);
 	return SPI_ERR_INTERNAL_ERROR;
@@ -268,8 +408,6 @@ static LRESULT CALLBACK AboutDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM l
 }
 
 static std::string g_sIniFileName; // ini ƒtƒ@ƒCƒ‹–¼
-static int g_nNumber;
-static int g_fImages;
 
 void LoadFromIni()
 {
