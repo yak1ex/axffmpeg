@@ -23,7 +23,9 @@
 #include <iostream>
 #include <iomanip>
 #include "odstream.hpp"
-using yak::debug::ods;
+#define DEBUG_LOG(ARG) yak::debug::ods ARG
+#else
+#define DEBUG_LOG(ARG) do { } while(0)
 #endif
 
 // Force null terminating version of strncpy
@@ -45,7 +47,7 @@ const char* table[] = {
 
 INT PASCAL GetPluginInfo(INT infono, LPSTR buf, INT buflen)
 {
-//	ods << "GetPluginInfo(" << infono << ',' << buf << ',' << buflen << ')' << std::endl;
+	DEBUG_LOG(<< "GetPluginInfo(" << infono << ',' << buf << ',' << buflen << ')' << std::endl);
 	if(0 <= infono && static_cast<size_t>(infono) < sizeof(table)/sizeof(table[0])) {
 		return safe_strncpy(buf, table[infono], buflen);
 	} else {
@@ -78,15 +80,15 @@ static INT IsSupportedImp(LPSTR filename, LPBYTE pb)
 
 INT PASCAL IsSupported(LPSTR filename, DWORD dw)
 {
-//	ods << "IsSupported(" << filename << ',' << std::hex << std::setw(8) << std::setfill('0') << dw << ')' << std::endl;
+	DEBUG_LOG(<< "IsSupported(" << filename << ',' << std::hex << std::setw(8) << std::setfill('0') << dw << ')' << std::endl);
 	if(HIWORD(dw) == 0) {
-//		ods << "File handle" << std::endl;
+		DEBUG_LOG(<< "File handle" << std::endl);
 		BYTE pb[2048];
 		DWORD dwSize;
 		ReadFile((HANDLE)dw, pb, sizeof(pb), &dwSize, NULL);
 		return IsSupportedImp(filename, pb);;
 	} else {
-//		ods << "Pointer" << std::endl; // By afx
+		DEBUG_LOG(<< "Pointer" << std::endl); // By afx
 		return IsSupportedImp(filename, (LPBYTE)dw);;
 	}
 	// not reached here
@@ -159,28 +161,19 @@ static unsigned long GetDurationByFile(LPSTR filename)
 		CloseHandle(handle_pair.first);
 		CloseHandle(handle_pair.second);
 	}
-#ifdef DEBUG
-	ods << "GetDurationByFile(" << filename << ") : " << duration << std::endl;
-#endif
+	DEBUG_LOG(<< "GetDurationByFile(" << filename << ") : " << duration << std::endl);
 	return duration;
 }
 
 INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
 {
-#ifdef DEBUG
-	ods << "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl;
-#endif
+	DEBUG_LOG(<< "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl);
 	switch(flag & 7) {
 	case 0:
-	  {
-#ifdef DEBUG
-		ods << "File" << std::endl; // By afx
-#endif
-		GetDurationByFile(buf);
-		return SPI_ERR_NOT_IMPLEMENTED;
-	  }
+		DEBUG_LOG(<< "File" << std::endl); // By afx
+		return GetArchiveInfoImp(lphInf, buf);
 	case 1:
-//		ods << "Memory" << std::endl;
+		DEBUG_LOG(<< "Memory" << std::endl);
 		return SPI_ERR_NOT_IMPLEMENTED;
 	}
 	return SPI_ERR_INTERNAL_ERROR;
@@ -188,18 +181,18 @@ INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
 
 INT PASCAL GetFileInfo(LPSTR buf, LONG len, LPSTR filename, UINT flag, SPI_FILEINFO *lpInfo)
 {
-//	ods << "GetFileInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << filename << ','<< std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lpInfo << ')' << std::endl;
+	DEBUG_LOG(<< "GetFileInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << filename << ','<< std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lpInfo << ')' << std::endl);
 	if(flag & 128) {
-//		ods << "Case-insensitive" << std::endl; // By afx
+		DEBUG_LOG(<< "Case-insensitive" << std::endl); // By afx
 	} else {
-//		ods << "Case-sensitive" << std::endl;
+		DEBUG_LOG(<< "Case-sensitive" << std::endl);
 	}
 	switch(flag & 7) {
 	case 0:
-//		ods << "File" << std::endl; // By afx
+		DEBUG_LOG(<< "File" << std::endl); // By afx
 		break;
 	case 1:
-//		ods << "Memory" << std::endl;
+		DEBUG_LOG(<< "Memory" << std::endl);
 		break;
 	}
 	HLOCAL hInfo;
@@ -225,30 +218,30 @@ INT PASCAL GetFileInfo(LPSTR buf, LONG len, LPSTR filename, UINT flag, SPI_FILEI
 
 INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCallback, LONG lData)
 {
-//	ods << "GetFile(" << ',' << len << ',' << ',' << flag << ',' << prgressCallback << ',' << lData << ')' << std::endl;
+	DEBUG_LOG(<< "GetFile(" << ',' << len << ',' << ',' << flag << ',' << prgressCallback << ',' << lData << ')' << std::endl);
 	switch(flag & 7) {
 	case 0:
 	  {
-//		ods << "Source is file" << std::endl; // By afx
+		DEBUG_LOG(<< "Source is file" << std::endl); // By afx
 		break;
 	  }
 	case 1:
-//		ods << "Source is memory" << std::endl;
+		DEBUG_LOG(<< "Source is memory" << std::endl);
 		return SPI_ERR_NOT_IMPLEMENTED; // We cannot handle this case.
 	}
 	switch((flag>>8) & 7) {
 	case 0:
-//		ods << "Destination is file: " << dest << std::endl;
+		DEBUG_LOG(<< "Destination is file: " << dest << std::endl);
 		break;
 	case 1:
-//		ods << "Destination is memory: " << reinterpret_cast<void*>(dest) << std::endl; // By afx
+		DEBUG_LOG(<< "Destination is memory: " << reinterpret_cast<void*>(dest) << std::endl); // By afx
 		break;
 	}
 	if(GetArchiveInfo(buf, len, flag&7, 0) == SPI_ERR_NO_ERROR) {
-//		ods << "GetFile(): GetArvhiveInfo() returned" << std::endl;
+		DEBUG_LOG(<< "GetFile(): GetArvhiveInfo() returned" << std::endl);
 		return SPI_ERR_NOT_IMPLEMENTED;
 	}
-//	ods << "GetFile(): position not found" << std::endl;
+	DEBUG_LOG(<< "GetFile(): position not found" << std::endl);
 	return SPI_ERR_INTERNAL_ERROR;
 }
 
@@ -425,7 +418,7 @@ static HINSTANCE g_hInstance;
 
 INT PASCAL ConfigurationDlg(HWND parent, INT fnc)
 {
-//	ods << "ConfigurationDlg called" << std::endl;
+	DEBUG_LOG(<< "ConfigurationDlg called" << std::endl);
 	if (fnc == 0) { // About
 		INITCOMMONCONTROLSEX icex = { sizeof(INITCOMMONCONTROLSEX), ICC_UPDOWN_CLASS };
 		InitCommonControlsEx(&icex);
