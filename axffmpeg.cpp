@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 #include "Spi_api.h"
 #include "resource.h"
@@ -104,6 +105,64 @@ INT GetArchiveInfoImp(LPSTR buf, DWORD len, HLOCAL *lphInf, LPSTR filename = NUL
 	}
 
 	return SPI_ERR_NO_ERROR;
+}
+
+static std::string g_sFFprobePath;
+static std::string g_sFFmpegPath;
+
+static std::pair<HANDLE, HANDLE> InvokeProcess(const std::string &sCommandLine)
+{
+	STARTUPINFO si = { sizeof(STARTUPINFO) };
+	HANDLE hRead1, hWrite1, hRead2, hWrite2;
+	SECURITY_ATTRIBUTES saAttr; 
+	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+	saAttr.bInheritHandle = TRUE; 
+	saAttr.lpSecurityDescriptor = NULL; 
+	CreatePipe(&hRead1, &hWrite1, &saAttr, 0);
+	SetHandleInformation(hRead1, HANDLE_FLAG_INHERIT, 0);
+	CreatePipe(&hRead2, &hWrite2, &saAttr, 0);
+	SetHandleInformation(hWrite2, HANDLE_FLAG_INHERIT, 0);
+	si.dwFlags = STARTF_USESTDHANDLES;
+	si.hStdInput = hRead2;
+	si.hStdOutput = hWrite1;
+	si.hStdError = hWrite1;
+	PROCESS_INFORMATION pi;
+	std::vector<char> vCommandLine(sCommandLine.begin(), sCommandLine.end());
+	vCommandLine.push_back(0);
+	if(CreateProcess(0, &vCommandLine[0], 0, 0, TRUE, CREATE_NO_WINDOW, 0, 0, &si, &pi)) {
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		CloseHandle(hWrite1);
+		CloseHandle(hRead2);
+		return std::make_pair(hRead1, hWrite2);
+	}
+	return std::pair<HANDLE, HANDLE>(0, 0);
+}
+
+static unsigned long GetDurationByFile(LPSTR filename)
+{
+	std::string s = std::string("\"") + g_sFFprobePath + "\" \"" + filename + "\" -v warning -show_entries format=duration -of csv";
+	std::pair<HANDLE, HANDLE> handle_pair = InvokeProcess(s);
+	unsigned long duration = 0;
+	if(handle_pair.first) {
+		std::string s;
+		DWORD dwLen;
+		std::vector<char> buf(2048);
+		while(ReadFile(handle_pair.first, &buf[0], buf.size(), &dwLen, 0)) {
+			s += std::string(&buf[0], &buf[0] + dwLen);
+		}
+		if(dwLen) s += std::string(&buf[0], &buf[0] + dwLen);
+		const char* p = s.c_str();
+		while(*p && *p != ',') ++p;
+		if(*p) ++p;
+		duration = std::strtoul(p, 0, 10);
+		CloseHandle(handle_pair.first);
+		CloseHandle(handle_pair.second);
+	}
+#ifdef DEBUG
+	ods << "GetDurationByFile(" << filename << ") : " << duration << std::endl;
+#endif
+	return duration;
 }
 
 INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
@@ -218,8 +277,6 @@ static LRESULT CALLBACK AboutDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM l
 static std::string g_sIniFileName; // ini ƒtƒ@ƒCƒ‹–¼
 static int g_nNumber;
 static int g_fImages;
-static std::string g_sFFprobePath;
-static std::string g_sFFmpegPath;
 
 void LoadFromIni()
 {
