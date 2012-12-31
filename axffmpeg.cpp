@@ -54,7 +54,24 @@ INT PASCAL GetPluginInfo(INT infono, LPSTR buf, INT buflen)
 
 static INT IsSupportedImp(LPSTR filename, LPBYTE pb)
 {
-//	return SPI_SUPPORT_YES;
+	std::string name(filename);
+	const char* start = table[2];
+	while(1) {
+		while(*start && *start != '.') {
+			++start;
+		}
+		if(!*start) break;
+		const char* end = start;
+		while(*end && *end != ';') {
+			++end;
+		}
+		std::string ext(start, end);
+		if(name.size() <= ext.size()) continue;
+		if(!lstrcmpi(name.substr(name.size() - ext.size()).c_str(), ext.c_str())) {
+			return SPI_SUPPORT_YES;
+		}
+		++start;
+	}
 	return SPI_SUPPORT_NO;
 }
 
