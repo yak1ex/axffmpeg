@@ -11,6 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 #include <windows.h>
+#include <commctrl.h>
 
 //#include <iostream>
 //#include <iomanip>
@@ -193,16 +194,37 @@ static LRESULT CALLBACK AboutDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM l
 }
 
 static std::string g_sIniFileName; // ini ƒtƒ@ƒCƒ‹–¼
-static bool g_fDuplicate;
+static int g_nNumber;
+static int g_fImages;
+static std::string g_sFFprobePath;
+static std::string g_sFFmpegPath;
 
 void LoadFromIni()
 {
-	g_fDuplicate = GetPrivateProfileInt("axffmpeg", "duplicate", 1, g_sIniFileName.c_str());
+	g_nNumber = GetPrivateProfileInt("axffmpeg", "number", 1, g_sIniFileName.c_str());
+	g_fImages = GetPrivateProfileInt("axffmpeg", "images", 1, g_sIniFileName.c_str());
+	std::vector<char> vBuf(1024);
+	DWORD dwSize;
+	do {
+		vBuf.resize(vBuf.size() * 2);
+		dwSize = GetPrivateProfileString("axffmpeg", "ffprobe", "", &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
+	} while(dwSize == vBuf.size() - 1);
+	g_sFFprobePath = std::string(&vBuf[0]);
+	do {
+		vBuf.resize(vBuf.size() * 2);
+		dwSize = GetPrivateProfileString("axffmpeg", "ffmpeg", "", &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
+	} while(dwSize == vBuf.size() - 1);
+	g_sFFmpegPath = std::string(&vBuf[0]);
 }
 
 void SaveToIni()
 {
-	WritePrivateProfileString("axffmpeg", "duplicate", g_fDuplicate ? "1" : "0", g_sIniFileName.c_str());
+	char buf[1024];
+	wsprintf(buf, "%d", g_nNumber);
+	WritePrivateProfileString("axffmpeg", "number", buf, g_sIniFileName.c_str());
+	WritePrivateProfileString("axffmpeg", "images", g_fImages ? "1" : "0", g_sIniFileName.c_str());
+	WritePrivateProfileString("axffmpeg", "ffprobe", g_sFFprobePath.c_str(), g_sIniFileName.c_str());
+	WritePrivateProfileString("axffmpeg", "ffmpeg", g_sFFmpegPath.c_str(), g_sIniFileName.c_str());
 }
 
 void SetIniFileName(HANDLE hModule)
@@ -221,13 +243,73 @@ void SetIniFileName(HANDLE hModule)
 
 void UpdateDialogItem(HWND hDlgWnd)
 {
-	SendDlgItemMessage(hDlgWnd, IDC_DONT_DUPLICATE, BM_SETCHECK, g_fDuplicate ? BST_UNCHECKED : BST_CHECKED, 0);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_SETRANGE32, 0, 0x7FFFFFFF);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_SETPOS32, 0, g_nNumber);
+	SendDlgItemMessage(hDlgWnd, g_fImages ? IDC_RADIO_IMAGES : IDC_RADIO_INTERVAL, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFprobePath.c_str()));
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFmpegPath.c_str()));
 }
 
 bool UpdateValue(HWND hDlgWnd)
 {
-	g_fDuplicate = (SendDlgItemMessage(hDlgWnd, IDC_DONT_DUPLICATE, BM_GETCHECK, 0, 0) != BST_CHECKED);
-	return true;
+	g_nNumber = SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_GETPOS32, 0, 0);
+	g_fImages = (SendDlgItemMessage(hDlgWnd, IDC_RADIO_IMAGES, BM_GETCHECK, 0, 0) == BST_CHECKED);
+
+	LRESULT lLen = SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_GETTEXTLENGTH, 0, 0);
+	std::vector<char> vBuf(lLen+1);
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_GETTEXT, lLen+1, reinterpret_cast<LPARAM>(&vBuf[0]));
+	g_sFFprobePath = std::string(&vBuf[0]);
+
+	lLen = SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_GETTEXTLENGTH, 0, 0);
+	vBuf.resize(lLen+1);
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_GETTEXT, lLen+1, reinterpret_cast<LPARAM>(&vBuf[0]));
+	g_sFFmpegPath = std::string(&vBuf[0]);
+
+	return true; // TODO: Always update
+}
+
+static void BrowseExePath(HWND hDlgWnd, bool fProbe)
+{
+	std::vector<char> buf(2048);
+	int nFile, nExtension;
+	if(fProbe) {
+		std::copy(g_sFFprobePath.begin(), g_sFFprobePath.end(), buf.begin());
+		buf[g_sFFprobePath.size()] = 0;
+		nFile = g_sFFprobePath.find_last_of('\\');
+		nExtension = g_sFFprobePath.find_last_of('.');
+	} else {
+		std::copy(g_sFFmpegPath.begin(), g_sFFmpegPath.end(), buf.begin());
+		buf[g_sFFmpegPath.size()] = 0;
+		nFile = g_sFFmpegPath.find_last_of('\\');
+		nExtension = g_sFFmpegPath.find_last_of('.');
+	}
+	if(nFile < 0) nFile = 0;
+	if(nExtension < 0) nExtension = 0;
+	OPENFILENAME ofn = {
+		sizeof(OPENFILENAME),
+		hDlgWnd,
+		0,
+		fProbe ? "ffprobe.exe\0ffprobe.exe\0\0" : "ffmpeg.exe\0ffmpeg.exe\0\0",
+		0,
+		0,
+		1,
+		&buf[0],
+		buf.size(),
+		0,
+		0,
+		0,
+		fProbe ? "Specify the place of ffprobe.exe" : "Specify the place of ffmpeg.exe",
+		OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES | OFN_PATHMUSTEXIST,
+		nFile,
+		nExtension,
+		0,
+		0,
+		0,
+		0
+	};
+	if(GetOpenFileName(&ofn)) {
+		SendDlgItemMessage(hDlgWnd, fProbe ? IDC_EDIT_FFPROBE_PATH : IDC_EDIT_FFMPEG_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(&buf[0]));
+	}
 }
 
 static LRESULT CALLBACK ConfigDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -247,6 +329,10 @@ static LRESULT CALLBACK ConfigDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM 
 				case IDCANCEL:
 					EndDialog(hDlgWnd, IDCANCEL);
 					break;
+				case IDC_BROWSE_FFPROBE:
+				case IDC_BROWSE_FFMPEG:
+					BrowseExePath(hDlgWnd, LOWORD(wp) == IDC_BROWSE_FFPROBE);
+					break;
 				default:
 					return FALSE;
 			}
@@ -262,6 +348,8 @@ INT PASCAL ConfigurationDlg(HWND parent, INT fnc)
 {
 //	ods << "ConfigurationDlg called" << std::endl;
 	if (fnc == 0) { // About
+		INITCOMMONCONTROLSEX icex = { sizeof(INITCOMMONCONTROLSEX), ICC_UPDOWN_CLASS };
+		InitCommonControlsEx(&icex);
 		DialogBox(g_hInstance, MAKEINTRESOURCE(IDD_ABOUT_DIALOG), parent, (DLGPROC)AboutDlgProc);
 	} else { // Configuration
 		DialogBoxParam(g_hInstance, MAKEINTRESOURCE(IDD_CONFIG_DIALOG), parent, (DLGPROC)ConfigDlgProc, 0);
