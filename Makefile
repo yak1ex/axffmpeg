@@ -38,6 +38,9 @@ libodstream.a: odstream.o
 %.ro: %.rc
 	windres -v -O coff $^ -o $@
 
+strip: axffmpeg.spi
+	strip $^
+	
 dist:
 	-rm -rf source source.zip axffmpeg-$(VER).zip disttemp
 	mkdir source
