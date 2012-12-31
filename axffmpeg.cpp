@@ -13,17 +13,17 @@
 #include <windows.h>
 #include <commctrl.h>
 
-//#include <iostream>
-//#include <iomanip>
 #include <string>
 #include <vector>
 
 #include "Spi_api.h"
 #include "resource.h"
-//#define DEBUG
-//#include "odstream.hpp"
-
-//using yak::debug::ods;
+#ifdef DEBUG
+#include <iostream>
+#include <iomanip>
+#include "odstream.hpp"
+using yak::debug::ods;
+#endif
 
 // Force null terminating version of strncpy
 // Return length without null terminator
@@ -91,11 +91,16 @@ INT GetArchiveInfoImp(LPSTR buf, DWORD len, HLOCAL *lphInf, LPSTR filename = NUL
 
 INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
 {
-//	ods << "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl;
+#ifdef DEBUG
+	ods << "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl;
+#endif
 	switch(flag & 7) {
 	case 0:
 	  {
-//		ods << "File" << std::endl; // By afx
+#ifdef DEBUG
+		ods << "File" << std::endl; // By afx
+#endif
+		GetDurationByFile(buf);
 		return SPI_ERR_NOT_IMPLEMENTED;
 	  }
 	case 1:

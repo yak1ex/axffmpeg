@@ -14,7 +14,11 @@
 VER=0_01
 
 CXX = i686-w64-mingw32-g++
+ifdef DEBUG
+CXXFLAGS = -DDEBUG -Wall -O3 -flto -I /usr/local/include
+else
 CXXFLAGS = -Wall -O3 -flto -I /usr/local/include
+endif
 LIBS = -L/usr/lib/w32api -lcomctl32
 
 all: axffmpeg.spi
