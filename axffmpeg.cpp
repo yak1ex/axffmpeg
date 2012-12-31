@@ -12,16 +12,17 @@
 /***********************************************************************/
 #include <windows.h>
 
-#include <iostream>
-#include <iomanip>
+//#include <iostream>
+//#include <iomanip>
+#include <string>
 #include <vector>
 
 #include "Spi_api.h"
 #include "resource.h"
-#define DEBUG
-#include "odstream.hpp"
+//#define DEBUG
+//#include "odstream.hpp"
 
-using yak::debug::ods;
+//using yak::debug::ods;
 
 // Force null terminating version of strncpy
 // Return length without null terminator
@@ -42,7 +43,7 @@ const char* table[] = {
 
 INT PASCAL GetPluginInfo(INT infono, LPSTR buf, INT buflen)
 {
-	ods << "GetPluginInfo(" << infono << ',' << buf << ',' << buflen << ')' << std::endl;
+//	ods << "GetPluginInfo(" << infono << ',' << buf << ',' << buflen << ')' << std::endl;
 	if(0 <= infono && static_cast<size_t>(infono) < sizeof(table)/sizeof(table[0])) {
 		return safe_strncpy(buf, table[infono], buflen);
 	} else {
@@ -58,15 +59,15 @@ static INT IsSupportedImp(LPSTR filename, LPBYTE pb)
 
 INT PASCAL IsSupported(LPSTR filename, DWORD dw)
 {
-	ods << "IsSupported(" << filename << ',' << std::hex << std::setw(8) << std::setfill('0') << dw << ')' << std::endl;
+//	ods << "IsSupported(" << filename << ',' << std::hex << std::setw(8) << std::setfill('0') << dw << ')' << std::endl;
 	if(HIWORD(dw) == 0) {
-		ods << "File handle" << std::endl;
+//		ods << "File handle" << std::endl;
 		BYTE pb[2048];
 		DWORD dwSize;
 		ReadFile((HANDLE)dw, pb, sizeof(pb), &dwSize, NULL);
 		return IsSupportedImp(filename, pb);;
 	} else {
-		ods << "Pointer" << std::endl; // By afx
+//		ods << "Pointer" << std::endl; // By afx
 		return IsSupportedImp(filename, (LPBYTE)dw);;
 	}
 	// not reached here
@@ -74,7 +75,7 @@ INT PASCAL IsSupported(LPSTR filename, DWORD dw)
 
 INT GetArchiveInfoImp(LPSTR buf, DWORD len, HLOCAL *lphInf, LPSTR filename = NULL)
 {
-ods << "GetArchiveInfoImp(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << lphInf << (filename ? filename : "NULL") << ')' << std::endl;
+//ods << "GetArchiveInfoImp(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << lphInf << (filename ? filename : "NULL") << ')' << std::endl;
 
 	try {
 	} catch(std::exception &e) {
@@ -89,15 +90,15 @@ ods << "GetArchiveInfoImp(" << std::string(buf, std::min<DWORD>(len, 1024)) << '
 
 INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
 {
-	ods << "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl;
+//	ods << "GetArchiveInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lphInf << ')' << std::endl;
 	switch(flag & 7) {
 	case 0:
 	  {
-		ods << "File" << std::endl; // By afx
+//		ods << "File" << std::endl; // By afx
 		return SPI_ERR_NOT_IMPLEMENTED;
 	  }
 	case 1:
-		ods << "Memory" << std::endl;
+//		ods << "Memory" << std::endl;
 		return SPI_ERR_NOT_IMPLEMENTED;
 	}
 	return SPI_ERR_INTERNAL_ERROR;
@@ -105,18 +106,19 @@ INT PASCAL GetArchiveInfo(LPSTR buf, LONG len, UINT flag, HLOCAL *lphInf)
 
 INT PASCAL GetFileInfo(LPSTR buf, LONG len, LPSTR filename, UINT flag, SPI_FILEINFO *lpInfo)
 {
-	ods << "GetFileInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << filename << ','<< std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lpInfo << ')' << std::endl;
+//	ods << "GetFileInfo(" << std::string(buf, std::min<DWORD>(len, 1024)) << ',' << len << ',' << filename << ','<< std::hex << std::setw(8) << std::setfill('0') << flag << ',' << lpInfo << ')' << std::endl;
 	if(flag & 128) {
-		ods << "Case-insensitive" << std::endl; // By afx
+//		ods << "Case-insensitive" << std::endl; // By afx
 	} else {
-		ods << "Case-sensitive" << std::endl;
+//		ods << "Case-sensitive" << std::endl;
 	}
 	switch(flag & 7) {
 	case 0:
-		ods << "File" << std::endl; // By afx
+//		ods << "File" << std::endl; // By afx
 		break;
 	case 1:
-		ods << "Memory" << std::endl;
+//		ods << "Memory" << std::endl;
+		break;
 	}
 	HLOCAL hInfo;
 	if(GetArchiveInfo(buf, len, flag&7, &hInfo) == SPI_ERR_NO_ERROR) {
@@ -141,30 +143,30 @@ INT PASCAL GetFileInfo(LPSTR buf, LONG len, LPSTR filename, UINT flag, SPI_FILEI
 
 INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCallback, LONG lData)
 {
-	ods << "GetFile(" << ',' << len << ',' << ',' << flag << ',' << prgressCallback << ',' << lData << ')' << std::endl;
+//	ods << "GetFile(" << ',' << len << ',' << ',' << flag << ',' << prgressCallback << ',' << lData << ')' << std::endl;
 	switch(flag & 7) {
 	case 0:
 	  {
-		ods << "Source is file" << std::endl; // By afx
+//		ods << "Source is file" << std::endl; // By afx
 		break;
 	  }
 	case 1:
-		ods << "Source is memory" << std::endl;
+//		ods << "Source is memory" << std::endl;
 		return SPI_ERR_NOT_IMPLEMENTED; // We cannot handle this case.
 	}
 	switch((flag>>8) & 7) {
 	case 0:
-		ods << "Destination is file: " << dest << std::endl;
+//		ods << "Destination is file: " << dest << std::endl;
 		break;
 	case 1:
-		ods << "Destination is memory: " << reinterpret_cast<void*>(dest) << std::endl; // By afx
+//		ods << "Destination is memory: " << reinterpret_cast<void*>(dest) << std::endl; // By afx
 		break;
 	}
 	if(GetArchiveInfo(buf, len, flag&7, 0) == SPI_ERR_NO_ERROR) {
-		ods << "GetFile(): GetArvhiveInfo() returned" << std::endl;
+//		ods << "GetFile(): GetArvhiveInfo() returned" << std::endl;
 		return SPI_ERR_NOT_IMPLEMENTED;
 	}
-	ods << "GetFile(): position not found" << std::endl;
+//	ods << "GetFile(): position not found" << std::endl;
 	return SPI_ERR_INTERNAL_ERROR;
 }
 
@@ -258,7 +260,7 @@ static HINSTANCE g_hInstance;
 
 INT PASCAL ConfigurationDlg(HWND parent, INT fnc)
 {
-	ods << "ConfigurationDlg called" << std::endl;
+//	ods << "ConfigurationDlg called" << std::endl;
 	if (fnc == 0) { // About
 		DialogBox(g_hInstance, MAKEINTRESOURCE(IDD_ABOUT_DIALOG), parent, (DLGPROC)AboutDlgProc);
 	} else { // Configuration
