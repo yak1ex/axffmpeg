@@ -3,12 +3,12 @@ axffmpeg.spi
 
 Susie plugin to invoke external FFmpeg, in order to handle a movie file as an image container.
 
-THIS REPOSITORY DO NOT AND WILL NOT INCLUDE FFmpeg ITSELF. You need to get it somewhere else.
+*THIS REPOSITORY DO NOT AND WILL NOT INCLUDE FFmpeg ITSELF*. You need to get it somewhere else.
 
 Author
 ------
 
-Yak! <yak_ex@mx.scn.tv>
+Yak! yak_ex@mx.scn.tv
 
 LICENSE
 -------
