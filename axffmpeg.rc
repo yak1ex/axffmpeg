@@ -18,26 +18,35 @@
 // Dialog
 //
 
-IDD_CONFIG_DIALOG DIALOGEX 0, 0, 183, 46
+IDD_CONFIG_DIALOG DIALOGEX 0, 0, 198, 130
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "axffmpeg.spi config"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "&OK",IDOK,41,25,43,14
-    PUSHBUTTON      "&Cancel",IDCANCEL,106,25,40,14
-    CONTROL         "Don't duplicate images from the same object",IDC_DONT_DUPLICATE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,7,163,10
+    LTEXT           "&Path of ffprobe",-1,11,6,50,8
+    EDITTEXT        IDC_EDIT_FFPROBE_PATH,9,17,131,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse",IDC_BROWSE_FFPROBE,144,17,50,14
+    LTEXT           "P&ath of ffmpeg",-1,11,34,49,8
+    EDITTEXT        IDC_EDIT_FFMPEG_PATH,10,43,131,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "B&rowse",IDC_BROWSE_FFMPEG,144,43,50,14
+    CONTROL         "&Images per file",IDC_RADIO_IMAGES,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,12,69,63,10
+    CONTROL         "I&nterval seconds",IDC_RADIO_INTERVAL,"Button",BS_AUTORADIOBUTTON,89,69,95,10
+    EDITTEXT        IDC_EDIT_NUMBER,67,87,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_NUMBER,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_ARROWKEYS,107,87,10,14
+    DEFPUSHBUTTON   "&OK",IDOK,41,109,43,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,106,109,40,14
 END
 
-IDD_ABOUT_DIALOG DIALOGEX 0, 0, 145, 64
+IDD_ABOUT_DIALOG DIALOGEX 0, 0, 142, 74
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About axffmpeg.spi"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,48,42,50,14
-    LTEXT           "axffmpeg.spi  v0.01 (2012/xx/xx)",IDC_STATIC,4,7,116,10
-    LTEXT           "Plugin to handle a movie as an image container",IDC_STATIC,22,17,123,12
-    LTEXT           "Written by Yak!",IDC_STATIC,22,28,62,12
+    DEFPUSHBUTTON   "OK",IDOK,46,52,50,14
+    LTEXT           "axffmpeg.spi  v0.01 (2012/xx/xx)",IDC_STATIC,10,7,116,10
+    LTEXT           "Plugin to handle a movie file",IDC_STATIC,17,17,100,12
+    LTEXT           "Written by Yak!",IDC_STATIC,17,38,62,12
+    LTEXT           "as an image container",IDC_STATIC,52,26,85,12
 END
 
 
