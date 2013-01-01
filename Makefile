@@ -21,16 +21,28 @@ CXXFLAGS = -Wall -O3 -flto -I /usr/local/include
 endif
 LIBS = -L/usr/lib/w32api -lcomctl32
 
+.PHONY: all release-clean release-dir strip bump dist release tag dtag retag release clean
+
 all: axffmpeg.spi
 
 axffmpeg.o: axffmpeg.cpp
-
 odstream.o: odstream.cpp odstream.hpp
-
 axffmpeg.spi: axffmpeg.o axffmpeg.ro libodstream.a axffmpeg.def
-
 libodstream.a: odstream.o
 	ar r $@ $^
+
+release-clean:
+	-rm -rf release
+release-dir:
+	-mkdir release
+release/axffmpeg.o: release-dir axffmpeg.cpp
+release/odstream.o: release-dir odstream.cpp odstream.hpp
+release/axffmpeg.spi: release/axffmpeg.o axffmpeg.ro release/libodstream.a axffmpeg.def
+release/libodstream.a: release/odstream.o
+	ar r $@ $^
+
+release/%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 %.spi: %.o
 	$(LINK.cc) -mwindows -shared -static-libgcc -static-libstdc++ -flto -O3 $^ -o $@ $(LIBS)
@@ -44,16 +56,17 @@ strip: axffmpeg.spi
 bump:
 	./bump.sh $(VER)
 	
-dist:
+dist: release-clean release/axffmpeg.spi
 	-rm -rf source source.zip axffmpeg-$(VER).zip disttemp
 	mkdir source
 	git archive --worktree-attributes master | tar xf - -C source
 	(cd source; zip ../source.zip *)
 	-rm -rf source
 	mkdir disttemp
-	cp axffmpeg.spi axffmpeg.txt source.zip disttemp
+	strip release/axffmpeg.spi
+	cp release/axffmpeg.spi axffmpeg.txt source.zip disttemp
 	(cd disttemp; zip ../axffmpeg-$(VER).zip *)
-	-rm -rf disttemp
+	-rm -rf disttemp release
 
 tag:
 	git tag axffmpeg-$(VER)
@@ -64,10 +77,10 @@ dtag:
 retag: dtag tag
 
 release:
-	make clean bump
+	make bump
 	-git a -u
 	-git commit -m 'Released as v'$(subst _,.,$(VER))
-	make tag all strip dist
+	make tag strip dist
 
 clean:
-	-rm -rf *.o *.spi *.ro
+	-rm -rf *.o *.spi *.ro release
