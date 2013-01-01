@@ -40,6 +40,9 @@ libodstream.a: odstream.o
 
 strip: axffmpeg.spi
 	strip $^
+
+bump:
+	./bump.sh $(VER)
 	
 dist:
 	-rm -rf source source.zip axffmpeg-$(VER).zip disttemp
@@ -54,6 +57,12 @@ dist:
 
 tag:
 	git tag axffmpeg-$(VER)
+
+release:
+	make clean bump
+	git a -u
+	git commit -m 'Released as v'$(subst _,.,$(VER))
+	make tag dist
 
 clean:
 	-rm -rf *.o *.spi *.ro
