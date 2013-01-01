@@ -218,13 +218,15 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
 
 	DWORD dwDuration = GetDurationByFile(filename);
-	DWORD dwDiv = g_fImages ? dwDuration / g_nNumber : g_nNumber;
-	if(dwDiv == 0) dwDiv = 1;
-	DWORD dwPos = (dwDuration - dwDuration / dwDiv * dwDiv) / 2;
+	DWORD dwDenom = g_fImages  ? g_nNumber : 1;
+	DWORD dwDiv = g_fImages ? dwDuration : std::min<DWORD>(g_nNumber, dwDuration);
+	DWORD dwPos = dwDuration * dwDenom - (dwDuration * dwDenom / dwDiv - 1) * dwDiv;
+	dwDenom *= 2;
+	dwDiv *= 2;
 	DWORD timestamp = filetime(filename);
 
-	while(dwPos < dwDuration) {
-		GetPictureAtPos(v2, dwPos, filename);
+	while(dwPos < dwDuration * dwDenom) {
+		GetPictureAtPos(v2, dwPos / dwDenom, filename);
 		SPI_FILEINFO sfi = {
 			{ 'F', 'F', 'M', 'P', 'E', 'G', '\0', '\0' },
 			dwPos,
