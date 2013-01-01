@@ -4,7 +4,10 @@
 *.BAK
 *.a
 
+*.zip
+
 *.3gp
 *.avi
 *.mp4
 *.wmv
+*.png
