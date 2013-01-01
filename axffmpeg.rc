@@ -2,7 +2,7 @@
 /*                                                                     */
 /* axffmpeg.rc: Resource file for axffmpeg                             */
 /*                                                                     */
-/*     Copyright (C) 2012 Yak! / Yasutaka ATARASHI                     */
+/*     Copyright (C) 2012,2013 Yak! / Yasutaka ATARASHI                */
 /*                                                                     */
 /*     This software is distributed under the terms of a zlib/libpng   */
 /*     License.                                                        */
@@ -43,7 +43,7 @@ CAPTION "About axffmpeg.spi"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,46,52,50,14
-    LTEXT           "axffmpeg.spi  v0.01 (2012/xx/xx)",IDC_STATIC,10,7,116,10
+    LTEXT           "axffmpeg.spi  v0.01 (2013/01/01)",IDC_STATIC,10,7,116,10
     LTEXT           "Plugin to handle a movie file",IDC_STATIC,17,17,100,12
     LTEXT           "Written by Yak!",IDC_STATIC,17,38,62,12
     LTEXT           "as an image container",IDC_STATIC,52,26,85,12
@@ -56,8 +56,8 @@ END
 //
 
 IDV_VERSIONINFO VERSIONINFO
- FILEVERSION 0,1,2011,402
- PRODUCTVERSION 0,1,2011,402
+ FILEVERSION 0,1,2013,101
+ PRODUCTVERSION 0,1,2013,101
  FILEFLAGSMASK 0x0L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -74,12 +74,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Yak!"
             VALUE "FileDescription", "axffmpeg.spi - Plugin to handle a movie as an image container"
-            VALUE "FileVersion", "Ver 0.01 (2012/xx/xx)"
+            VALUE "FileVersion", "Ver 0.01 (2013/01/01)"
             VALUE "InternalName", "axffmpeg.spi"
             VALUE "LegalCopyright", "Written by Yak!"
             VALUE "OriginalFilename", "axffmpeg.spi"
             VALUE "ProductName", "axffmpeg.spi"
-            VALUE "ProductVersion", "Ver 0.01 (2012/xx/xx)"
+            VALUE "ProductVersion", "Ver 0.01 (2013/01/01)"
         END
     END
     BLOCK "VarFileInfo"

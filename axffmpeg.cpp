@@ -2,7 +2,7 @@
 /*                                                                     */
 /* axffmpeg.cpp: Source file for axffmpeg                              */
 /*                                                                     */
-/*     Copyright (C) 2012 Yak! / Yasutaka ATARASHI                     */
+/*     Copyright (C) 2012,2013 Yak! / Yasutaka ATARASHI                */
 /*                                                                     */
 /*     This software is distributed under the terms of a zlib/libpng   */
 /*     License.                                                        */
@@ -54,7 +54,7 @@ static bool g_fImages;
 
 const char* table[] = {
 	"00AM",
-	"Plugin to handle a movie as an image container - v0.01 (201x/xx/xx) Written by Yak!",
+	"Plugin to handle a movie as an image container - v0.01 (2013/01/01) Written by Yak!",
 	"*.3g2;*.3gp;*.avi;*.flv;*.m4v;*.mov;*.mp4;*.mpeg;*.mpg;*.ogg;*.swf;*.webm;*.wmv",
 	"“®‰æƒtƒ@ƒCƒ‹"
 };
