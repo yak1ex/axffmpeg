@@ -51,18 +51,23 @@ dist:
 	(cd source; zip ../source.zip *)
 	-rm -rf source
 	mkdir disttemp
-	cp axffmpeg.spi axffmepg.txt source.zip disttemp
+	cp axffmpeg.spi axffmpeg.txt source.zip disttemp
 	(cd disttemp; zip ../axffmpeg-$(VER).zip *)
 	-rm -rf disttemp
 
 tag:
 	git tag axffmpeg-$(VER)
 
+dtag:
+	-git tag -d axffmpeg-$(VER)
+
+retag: dtag tag
+
 release:
 	make clean bump
-	git a -u
-	git commit -m 'Released as v'$(subst _,.,$(VER))
-	make tag dist
+	-git a -u
+	-git commit -m 'Released as v'$(subst _,.,$(VER))
+	make tag all strip dist
 
 clean:
 	-rm -rf *.o *.spi *.ro
