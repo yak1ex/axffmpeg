@@ -79,7 +79,7 @@ retag: dtag tag
 release:
 	make bump
 	-git a -u
-	-git commit -m 'Released as v'$(subst _,.,$(VER))
+	-git commit -m 'Released as v'$(subst _,.,$(VER))'.'
 	make tag strip dist
 
 clean:
