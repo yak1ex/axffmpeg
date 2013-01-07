@@ -48,8 +48,10 @@ release/%.o: %.cpp
 %.spi: %.o
 	$(LINK.cc) -mwindows -shared -static-libgcc -static-libstdc++ -flto -O3 $^ -o $@ $(LIBS)
 
+axffmpeg.ro: axffmpeg.rc error.png
+
 %.ro: %.rc
-	windres $(WINDRESFLAGS) -O coff $^ -o $@
+	windres $(WINDRESFLAGS) -O coff $< -o $@
 
 strip: axffmpeg.spi
 	strip $^
