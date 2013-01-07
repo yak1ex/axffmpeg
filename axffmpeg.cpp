@@ -49,7 +49,8 @@ int safe_strncpy(char *dest, const char *src, std::size_t n)
 
 static std::string g_sFFprobePath;
 static std::string g_sFFmpegPath;
-static int g_nNumber;
+static int g_nImages;
+static int g_nInterval;
 static bool g_fImages;
 
 const char* table[] = {
@@ -218,8 +219,8 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
 
 	DWORD dwDuration = GetDurationByFile(filename);
-	DWORD dwDenom = g_fImages  ? g_nNumber : 1;
-	DWORD dwDiv = g_fImages ? dwDuration : std::min<DWORD>(g_nNumber, dwDuration);
+	DWORD dwDenom = g_fImages  ? g_nImages : 1;
+	DWORD dwDiv = g_fImages ? dwDuration : std::min<DWORD>(g_nInterval, dwDuration);
 	DWORD dwPos = dwDuration * dwDenom - (dwDuration * dwDenom / dwDiv - 1) * dwDiv;
 	dwDenom *= 2;
 	dwDiv *= 2;
@@ -413,7 +414,8 @@ static std::string g_sIniFileName; // ini ƒtƒ@ƒCƒ‹–¼
 
 void LoadFromIni()
 {
-	g_nNumber = GetPrivateProfileInt("axffmpeg", "number", 1, g_sIniFileName.c_str());
+	g_nImages = GetPrivateProfileInt("axffmpeg", "imagenum", 1, g_sIniFileName.c_str());
+	g_nInterval = GetPrivateProfileInt("axffmpeg", "interval", 1, g_sIniFileName.c_str());
 	g_fImages = GetPrivateProfileInt("axffmpeg", "images", 1, g_sIniFileName.c_str());
 	std::vector<char> vBuf(1024);
 	DWORD dwSize;
@@ -432,9 +434,11 @@ void LoadFromIni()
 void SaveToIni()
 {
 	char buf[1024];
-	wsprintf(buf, "%d", g_nNumber);
-	WritePrivateProfileString("axffmpeg", "number", buf, g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "images", g_fImages ? "1" : "0", g_sIniFileName.c_str());
+	wsprintf(buf, "%d", g_nImages);
+	WritePrivateProfileString("axffmpeg", "imagenum", buf, g_sIniFileName.c_str());
+	wsprintf(buf, "%d", g_nInterval);
+	WritePrivateProfileString("axffmpeg", "interval", buf, g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "ffprobe", g_sFFprobePath.c_str(), g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "ffmpeg", g_sFFmpegPath.c_str(), g_sIniFileName.c_str());
 }
@@ -455,16 +459,23 @@ void SetIniFileName(HANDLE hModule)
 
 void UpdateDialogItem(HWND hDlgWnd)
 {
-	SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_SETRANGE32, 0, 0x7FFFFFFF);
-	SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_SETPOS32, 0, g_nNumber);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_IMAGES, UDM_SETRANGE32, 0, 0x7FFFFFFF);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_IMAGES, UDM_SETPOS32, 0, g_nImages);
 	SendDlgItemMessage(hDlgWnd, g_fImages ? IDC_RADIO_IMAGES : IDC_RADIO_INTERVAL, BM_SETCHECK, BST_CHECKED, 0);
+	EnableWindow(GetDlgItem(hDlgWnd, IDC_EDIT_IMAGES), g_fImages);
+	EnableWindow(GetDlgItem(hDlgWnd, IDC_SPIN_IMAGES), g_fImages);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_INTERVAL, UDM_SETRANGE32, 0, 0x7FFFFFFF);
+	SendDlgItemMessage(hDlgWnd, IDC_SPIN_INTERVAL, UDM_SETPOS32, 0, g_nInterval);
+	EnableWindow(GetDlgItem(hDlgWnd, IDC_EDIT_INTERVAL), !g_fImages);
+	EnableWindow(GetDlgItem(hDlgWnd, IDC_SPIN_INTERVAL), !g_fImages);
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFprobePath.c_str()));
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFmpegPath.c_str()));
 }
 
 bool UpdateValue(HWND hDlgWnd)
 {
-	g_nNumber = SendDlgItemMessage(hDlgWnd, IDC_SPIN_NUMBER, UDM_GETPOS32, 0, 0);
+	g_nImages = SendDlgItemMessage(hDlgWnd, IDC_SPIN_IMAGES, UDM_GETPOS32, 0, 0);
+	g_nInterval = SendDlgItemMessage(hDlgWnd, IDC_SPIN_INTERVAL, UDM_GETPOS32, 0, 0);
 	g_fImages = (SendDlgItemMessage(hDlgWnd, IDC_RADIO_IMAGES, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
 	LRESULT lLen = SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_GETTEXTLENGTH, 0, 0);
@@ -544,6 +555,13 @@ static LRESULT CALLBACK ConfigDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM 
 				case IDC_BROWSE_FFPROBE:
 				case IDC_BROWSE_FFMPEG:
 					BrowseExePath(hDlgWnd, LOWORD(wp) == IDC_BROWSE_FFPROBE);
+					break;
+				case IDC_RADIO_IMAGES:
+				case IDC_RADIO_INTERVAL:
+					EnableWindow(GetDlgItem(hDlgWnd, IDC_EDIT_IMAGES), LOWORD(wp) == IDC_RADIO_IMAGES);
+					EnableWindow(GetDlgItem(hDlgWnd, IDC_SPIN_IMAGES), LOWORD(wp) == IDC_RADIO_IMAGES);
+					EnableWindow(GetDlgItem(hDlgWnd, IDC_EDIT_INTERVAL), LOWORD(wp) == IDC_RADIO_INTERVAL);
+					EnableWindow(GetDlgItem(hDlgWnd, IDC_SPIN_INTERVAL), LOWORD(wp) == IDC_RADIO_INTERVAL);
 					break;
 				default:
 					return FALSE;
