@@ -54,6 +54,7 @@ static std::string g_sFFmpegPath;
 static int g_nImages;
 static int g_nInterval;
 static bool g_fImages;
+static std::string g_sExtension;
 
 const char* table[] = {
 	"00AM",
@@ -66,7 +67,7 @@ INT PASCAL GetPluginInfo(INT infono, LPSTR buf, INT buflen)
 {
 	DEBUG_LOG(<< "GetPluginInfo(" << infono << ',' << buf << ',' << buflen << ')' << std::endl);
 	if(0 <= infono && static_cast<size_t>(infono) < sizeof(table)/sizeof(table[0])) {
-		return safe_strncpy(buf, table[infono], buflen);
+		return safe_strncpy(buf, infono == 2 ? g_sExtension.c_str() : table[infono], buflen);
 	} else {
 		return 0;
 	}
@@ -75,7 +76,7 @@ INT PASCAL GetPluginInfo(INT infono, LPSTR buf, INT buflen)
 static INT IsSupportedImp(LPSTR filename, LPBYTE pb)
 {
 	std::string name(filename);
-	const char* start = table[2];
+	const char* start = g_sExtension.c_str();
 	while(1) {
 		while(*start && *start != '.') {
 			++start;
@@ -445,16 +446,18 @@ void LoadFromIni()
 	g_fImages = GetPrivateProfileInt("axffmpeg", "images", 1, g_sIniFileName.c_str());
 	std::vector<char> vBuf(1024);
 	DWORD dwSize;
-	do {
-		vBuf.resize(vBuf.size() * 2);
+	for(dwSize = vBuf.size() - 1; dwSize == vBuf.size() - 1; vBuf.resize(vBuf.size() * 2)) {
 		dwSize = GetPrivateProfileString("axffmpeg", "ffprobe", "", &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
-	} while(dwSize == vBuf.size() - 1);
+	}
 	g_sFFprobePath = std::string(&vBuf[0]);
-	do {
-		vBuf.resize(vBuf.size() * 2);
+	for(dwSize = vBuf.size() - 1; dwSize == vBuf.size() - 1; vBuf.resize(vBuf.size() * 2)) {
 		dwSize = GetPrivateProfileString("axffmpeg", "ffmpeg", "", &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
-	} while(dwSize == vBuf.size() - 1);
+	}
 	g_sFFmpegPath = std::string(&vBuf[0]);
+	for(dwSize = vBuf.size() - 1; dwSize == vBuf.size() - 1; vBuf.resize(vBuf.size() * 2)) {
+		dwSize = GetPrivateProfileString("axffmpeg", "extension", table[2], &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
+	}
+	g_sExtension = std::string(&vBuf[0]);
 }
 
 void SaveToIni()
@@ -467,6 +470,7 @@ void SaveToIni()
 	WritePrivateProfileString("axffmpeg", "interval", buf, g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "ffprobe", g_sFFprobePath.c_str(), g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "ffmpeg", g_sFFmpegPath.c_str(), g_sIniFileName.c_str());
+	WritePrivateProfileString("axffmpeg", "extension", g_sExtension.c_str(), g_sIniFileName.c_str());
 }
 
 void SetIniFileName(HANDLE hModule)
@@ -496,6 +500,7 @@ void UpdateDialogItem(HWND hDlgWnd)
 	EnableWindow(GetDlgItem(hDlgWnd, IDC_SPIN_INTERVAL), !g_fImages);
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFprobePath.c_str()));
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFmpegPath.c_str()));
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_EXTENSION, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sExtension.c_str()));
 }
 
 bool UpdateValue(HWND hDlgWnd)
@@ -513,6 +518,11 @@ bool UpdateValue(HWND hDlgWnd)
 	vBuf.resize(lLen+1);
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_GETTEXT, lLen+1, reinterpret_cast<LPARAM>(&vBuf[0]));
 	g_sFFmpegPath = std::string(&vBuf[0]);
+
+	lLen = SendDlgItemMessage(hDlgWnd, IDC_EDIT_EXTENSION, WM_GETTEXTLENGTH, 0, 0);
+	vBuf.resize(lLen+1);
+	SendDlgItemMessage(hDlgWnd, IDC_EDIT_EXTENSION, WM_GETTEXT, lLen+1, reinterpret_cast<LPARAM>(&vBuf[0]));
+	g_sExtension = std::string(&vBuf[0]);
 
 	return true; // TODO: Always update
 }
