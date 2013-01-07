@@ -32,5 +32,6 @@
 #define IDC_SPIN_IMAGES                         1008
 #define IDC_SPIN_INTERVAL                       1009
 #define IDC_EDIT_EXTENSION                      1011
+#define IDC_SET_DEFAULT                         1012
 
 #endif
