@@ -20,6 +20,7 @@
 #define IDV_VERSIONINFO                         1
 #define IDD_ABOUT_DIALOG                        101
 #define IDD_CONFIG_DIALOG                       102
+#define IDR_ERROR_IMAGE                         103
 #define IDC_EDIT_FFPROBE_PATH                   1000
 #define IDC_BROWSE_FFPROBE                      1001
 #define IDC_EDIT_FFMPEG_PATH                    1002
