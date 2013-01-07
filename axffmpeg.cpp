@@ -59,7 +59,7 @@ static std::string g_sExtension;
 const char* table[] = {
 	"00AM",
 	"Plugin to handle a movie as an image container - v0.01 (2013/01/01) Written by Yak!",
-	"*.3g2;*.3gp;*.avi;*.flv;*.m4v;*.mkv;*.mov;*.mp4;*.mpeg;*.mpg;*.ogg;*.swf;*.webm;*.wmv",
+	"*.3g2;*.3gp;*.avi;*.f4v;*.flv;*.m4v;*.mkv;*.mov;*.mp4;*.mpeg;*.mpg;*.ogg;*.webm;*.wmv",
 	"“®‰æƒtƒ@ƒCƒ‹"
 };
 
