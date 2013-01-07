@@ -372,7 +372,7 @@ INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCa
 		DEBUG_LOG(<< "Destination is file: " << dest << std::endl);
 		break;
 	case 1:
-		DEBUG_LOG(<< "Destination is memory: " << reinterpret_cast<void*>(dest) << std::endl); // By afx
+		DEBUG_LOG(<< "Destination is memory: " << static_cast<void*>(dest) << std::endl); // By afx
 		break;
 	}
 	if(GetArchiveInfo(buf, len, flag&7, 0) == SPI_ERR_NO_ERROR) {
@@ -390,7 +390,7 @@ INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCa
 				if((flag>>8) & 7) { // memory
 					if(dest) {
 						DEBUG_LOG(<< "GetFile(): size: " << value.second[i].size() << " head: " << value.second[i][0] << value.second[i][1] << value.second[i][2] << value.second[i][3] << std::endl);
-						HANDLE *phResult = reinterpret_cast<HANDLE*>(dest);
+						HANDLE *phResult = static_cast<HANDLE*>(static_cast<void*>(dest));
 						*phResult = LocalAlloc(LMEM_MOVEABLE, value.second[i].size());
 						void* p = LocalLock(*phResult);
 						CopyMemory(p, &value.second[i][0], value.second[i].size());
