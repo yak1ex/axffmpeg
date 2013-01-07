@@ -47,6 +47,8 @@ int safe_strncpy(char *dest, const char *src, std::size_t n)
 	return i;
 }
 
+static HINSTANCE g_hInstance;
+
 static std::string g_sFFprobePath;
 static std::string g_sFFmpegPath;
 static int g_nImages;
@@ -193,6 +195,16 @@ static time_t filetime(const char* filename)
 	return st.st_mtime;
 }
 
+static void SetErrorImage(std::vector<std::vector<char> > &v2)
+{
+	DEBUG_LOG(<< "SetErrorImage(" << v2.size() << ')' << std::endl);
+	HRSRC hResource = FindResource(g_hInstance, MAKEINTRESOURCE(IDR_ERROR_IMAGE), RT_RCDATA);
+	DWORD dwSize = SizeofResource(g_hInstance, hResource);
+	HGLOBAL handle = LoadResource(g_hInstance, hResource);
+	char* pErrorImage = static_cast<char*>(LockResource(handle));
+	v2.back().assign(pErrorImage, pErrorImage + dwSize);
+}
+
 static void GetPictureAtPos(std::vector<std::vector<char> > &v2, DWORD dwPos, LPSTR filename)
 {
 	DEBUG_LOG(<< "GetPictureAtPos(" << v2.size() << ',' << dwPos << ',' << filename << ')' << std::endl);
@@ -212,31 +224,45 @@ static void GetPictureAtPos(std::vector<std::vector<char> > &v2, DWORD dwPos, LP
 		CloseHandle(handle_pair.second);
 	}
 	DEBUG_LOG(<< "GetPictureAtPos(" << filename << ") : " << v2.back().size() << std::endl);
+	if(v2.back().size() == 0) {
+		SetErrorImage(v2);
+	}
+}
+
+static void SetArchiveInfo(std::vector<SPI_FILEINFO> &v1, std::vector<std::vector<char> > &v2, DWORD dwPos, DWORD timestamp)
+{
+	SPI_FILEINFO sfi = {
+		{ 'F', 'F', 'M', 'P', 'E', 'G', '\0', '\0' },
+		dwPos,
+		v2.back().size(),
+		v2.back().size(),
+		timestamp,
+	};
+	wsprintf(sfi.filename, "%08d.png", v1.size());
+	v1.push_back(sfi);
 }
 
 static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::vector<char> > &v2, LPSTR filename)
 {
 	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
 
+	DWORD timestamp = filetime(filename);
 	DWORD dwDuration = GetDurationByFile(filename);
+	if(dwDuration == 0) {
+		v2.push_back(std::vector<char>());
+		SetErrorImage(v2);
+		SetArchiveInfo(v1, v2, 0, timestamp);
+		return;
+	}
 	DWORD dwDenom = g_fImages  ? g_nImages : 1;
 	DWORD dwDiv = g_fImages ? dwDuration : std::min<DWORD>(g_nInterval, dwDuration);
 	DWORD dwPos = dwDuration * dwDenom - (dwDuration * dwDenom / dwDiv - 1) * dwDiv;
 	dwDenom *= 2;
 	dwDiv *= 2;
-	DWORD timestamp = filetime(filename);
 
 	while(dwPos < dwDuration * dwDenom) {
 		GetPictureAtPos(v2, dwPos / dwDenom, filename);
-		SPI_FILEINFO sfi = {
-			{ 'F', 'F', 'M', 'P', 'E', 'G', '\0', '\0' },
-			dwPos,
-			v2.back().size(),
-			v2.back().size(),
-			timestamp,
-		};
-		wsprintf(sfi.filename, "%08d.png", v1.size());
-		v1.push_back(sfi);
+		SetArchiveInfo(v1, v2, dwPos, timestamp);
 		dwPos += dwDiv;
 	}
 }
@@ -571,8 +597,6 @@ static LRESULT CALLBACK ConfigDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM 
 	}
 	return TRUE;
 }
-
-static HINSTANCE g_hInstance;
 
 INT PASCAL ConfigurationDlg(HWND parent, INT fnc)
 {
