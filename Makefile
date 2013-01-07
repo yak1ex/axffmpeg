@@ -16,6 +16,7 @@ VER=0_01
 CXX = i686-w64-mingw32-g++
 ifdef DEBUG
 CXXFLAGS = -DDEBUG -Wall -O3 -flto -I /usr/local/include
+WINDRESFLAGS = -D DEBUG
 else
 CXXFLAGS = -Wall -O3 -flto -I /usr/local/include
 endif
@@ -48,7 +49,7 @@ release/%.o: %.cpp
 	$(LINK.cc) -mwindows -shared -static-libgcc -static-libstdc++ -flto -O3 $^ -o $@ $(LIBS)
 
 %.ro: %.rc
-	windres -v -O coff $^ -o $@
+	windres $(WINDRESFLAGS) -O coff $^ -o $@
 
 strip: axffmpeg.spi
 	strip $^
