@@ -20,7 +20,8 @@
 #define IDV_VERSIONINFO                         1
 #define IDD_ABOUT_DIALOG                        101
 #define IDD_CONFIG_DIALOG                       102
-#define IDR_ERROR_IMAGE                         103
+#define IDD_PROGRESS                            103
+#define IDR_ERROR_IMAGE                         104
 #define IDC_EDIT_FFPROBE_PATH                   1000
 #define IDC_BROWSE_FFPROBE                      1001
 #define IDC_EDIT_FFMPEG_PATH                    1002
@@ -31,7 +32,9 @@
 #define IDC_EDIT_INTERVAL                       1007
 #define IDC_SPIN_IMAGES                         1008
 #define IDC_SPIN_INTERVAL                       1009
-#define IDC_EDIT_EXTENSION                      1011
-#define IDC_SET_DEFAULT                         1012
+#define IDC_EDIT_EXTENSION                      1010
+#define IDC_SET_DEFAULT                         1011
+#define IDC_PROGRESSBAR                         1012
+#define IDC_EDIT_PROGRESS                       1013
 
 #endif
