@@ -49,6 +49,8 @@ int safe_strncpy(char *dest, const char *src, std::size_t n)
 
 static HINSTANCE g_hInstance;
 
+static bool g_fWarned;
+
 static std::string g_sFFprobePath;
 static std::string g_sFFmpegPath;
 static int g_nImages;
@@ -143,6 +145,14 @@ static std::pair<HANDLE, HANDLE> InvokeProcess(const std::string &sCommandLine)
 
 static unsigned long GetDurationByFile(LPSTR filename)
 {
+	if(g_sFFprobePath.empty() && !g_fWarned) {
+		g_fWarned = true;
+		MessageBox(NULL, "Path of ffprobe.exe is not specified.", "axffmpeg.spi", MB_ICONEXCLAMATION | MB_OK);
+	}
+	if(g_sFFmpegPath.empty() && !g_fWarned) {
+		g_fWarned = true;
+		MessageBox(NULL, "Path of ffmpeg.exe is not specified.", "axffmpeg.spi", MB_ICONEXCLAMATION | MB_OK);
+	}
 	std::string s = std::string("\"") + g_sFFprobePath + "\" \"" + filename + "\" -v warning -show_entries format=duration -of csv";
 	std::pair<HANDLE, HANDLE> handle_pair = InvokeProcess(s);
 	unsigned long duration = 0;
