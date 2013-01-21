@@ -35,6 +35,7 @@
 #define IDC_EDIT_EXTENSION                      1010
 #define IDC_SET_DEFAULT                         1011
 #define IDC_PROGRESSBAR                         1012
-#define IDC_EDIT_PROGRESS                       1013
+#define IDC_CHECK_PROGRESS                      1013
+#define IDC_EDIT_PROGRESS                       1014
 
 #endif

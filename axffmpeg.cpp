@@ -57,6 +57,7 @@ static int g_nImages;
 static int g_nInterval;
 static bool g_fImages;
 static std::string g_sExtension;
+static bool g_fProgress;
 
 const char* table[] = {
 	"00AM",
@@ -253,6 +254,26 @@ static void SetArchiveInfo(std::vector<SPI_FILEINFO> &v1, std::vector<std::vecto
 	v1.push_back(sfi);
 }
 
+INT_PTR CALLBACK ProgressDlgProc(HWND hDlgWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+	return FALSE;
+}
+
+static void SetProgress(HWND hwnd, DWORD cur, DWORD last)
+{
+	SendDlgItemMessage(hwnd, IDC_PROGRESSBAR, PBM_SETPOS, cur, 0);
+	char buf[1024];
+	wsprintf(buf, "%d / %d", cur, last);
+	SendDlgItemMessage(hwnd, IDC_EDIT_PROGRESS, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(buf));
+	RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+
+	MSG msg;
+	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+}
+
 static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::vector<char> > &v2, LPSTR filename)
 {
 	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
@@ -271,11 +292,22 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	dwDenom *= 2;
 	dwDiv *= 2;
 
+	const DWORD N = (dwDuration * dwDenom - dwPos + dwDiv - 1) / dwDiv;
+	DWORD cur = 0;
+
+	HWND hwnd;
+	if(g_fProgress) {
+		hwnd = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_PROGRESS), NULL, ProgressDlgProc);
+		SendDlgItemMessage(hwnd, IDC_PROGRESSBAR, PBM_SETRANGE32, 0, N);
+		SetProgress(hwnd, cur, N);
+	}
 	while(dwPos < dwDuration * dwDenom) {
 		GetPictureAtPos(v2, dwPos / dwDenom, filename);
 		SetArchiveInfo(v1, v2, dwPos, timestamp);
 		dwPos += dwDiv;
+		if(g_fProgress) SetProgress(hwnd, ++cur, N);
 	}
+	DestroyWindow(hwnd);
 }
 
 static INT GetArchiveInfoImp(HLOCAL *lphInf, LPSTR filename)
@@ -468,6 +500,7 @@ void LoadFromIni()
 		dwSize = GetPrivateProfileString("axffmpeg", "extension", table[2], &vBuf[0], vBuf.size(), g_sIniFileName.c_str());
 	}
 	g_sExtension = std::string(&vBuf[0]);
+	g_fProgress = GetPrivateProfileInt("axffmpeg", "progress", 1, g_sIniFileName.c_str());
 }
 
 void SaveToIni()
@@ -481,6 +514,7 @@ void SaveToIni()
 	WritePrivateProfileString("axffmpeg", "ffprobe", g_sFFprobePath.c_str(), g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "ffmpeg", g_sFFmpegPath.c_str(), g_sIniFileName.c_str());
 	WritePrivateProfileString("axffmpeg", "extension", g_sExtension.c_str(), g_sIniFileName.c_str());
+	WritePrivateProfileString("axffmpeg", "progress", g_fProgress ? "1" : "0", g_sIniFileName.c_str());
 }
 
 void SetIniFileName(HANDLE hModule)
@@ -511,6 +545,7 @@ void UpdateDialogItem(HWND hDlgWnd)
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFPROBE_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFprobePath.c_str()));
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_FFMPEG_PATH, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sFFmpegPath.c_str()));
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_EXTENSION, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(g_sExtension.c_str()));
+	SendDlgItemMessage(hDlgWnd, IDC_CHECK_PROGRESS, BM_SETCHECK, g_fProgress ? BST_CHECKED : BST_UNCHECKED, 0);
 }
 
 bool UpdateValue(HWND hDlgWnd)
@@ -533,6 +568,8 @@ bool UpdateValue(HWND hDlgWnd)
 	vBuf.resize(lLen+1);
 	SendDlgItemMessage(hDlgWnd, IDC_EDIT_EXTENSION, WM_GETTEXT, lLen+1, reinterpret_cast<LPARAM>(&vBuf[0]));
 	g_sExtension = std::string(&vBuf[0]);
+
+	g_fProgress = (SendDlgItemMessage(hDlgWnd, IDC_CHECK_PROGRESS, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
 	return true; // TODO: Always update
 }
