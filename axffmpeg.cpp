@@ -61,7 +61,7 @@ static bool g_fProgress;
 
 const char* table[] = {
 	"00AM",
-	"Plugin to handle a movie as an image container - v0.01 (2013/01/01) Written by Yak!",
+	"Plugin to handle a movie as an image container - v0.02 (2013/01/22) Written by Yak!",
 	"*.3g2;*.3gp;*.avi;*.f4v;*.flv;*.m4v;*.mkv;*.mov;*.mp4;*.mpeg;*.mpg;*.ogg;*.webm;*.wmv",
 	"“®‰æƒtƒ@ƒCƒ‹"
 };
