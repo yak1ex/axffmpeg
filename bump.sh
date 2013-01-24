@@ -14,7 +14,10 @@ major=`echo $1 | sed 's@_0*@,@g'`
 date=`date +%Y/%m/%d`
 version2=`date +$major,%Y,%-m%d`
 echo $version $date $version2
-for i in axffmpeg.cpp axffmpeg.rc; do
-    sed -i.bak "s,[0-9]\.[0-9][0-9] (..../../..),$version ($date),;s@\(FILE\|PRODUCT\)VERSION [0-9]*,[0-9]*,[0-9]*,[0-9]*@\1VERSION $version2@g" $i
+for i in axffmpeg.cpp axffmpeg.rc axffmpeg.txt; do
+    sed -i.bak "s,[0-9]\.[0-9][0-9] (..../../..),$version ($date),;s,[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9] Yak!,$date Yak!,;s@\(FILE\|PRODUCT\)VERSION [0-9]*,[0-9]*,[0-9]*,[0-9]*@\1VERSION $version2@g" $i
+    if [ $i != axffmpeg.cpp ]; then
+        u2d $i
+    fi
     diff -u $i.bak $i
 done
