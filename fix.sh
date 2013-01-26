@@ -19,7 +19,7 @@ if ! grep -q DEBUG axffmpeg.rc; then
 #endif' -e '/ProductVersion/a#ifdef DEBUG\
             VALUE "PrivateBuild", "Debug build"\
 #endif' axffmpeg.rc
-    u2d axffmpeg.rc
+    d2u axffmpeg.rc.bak
     diff axffmpeg.rc.bak axffmpeg.rc
 fi
 
@@ -41,6 +41,6 @@ if ! grep -q resource\\.h resource.h; then
 ' -e '$a\
 \
 #endif' resource.h
-    u2d resource.h
+    d2u resource.h.bak
     diff resource.h.bak resource.h
 fi
