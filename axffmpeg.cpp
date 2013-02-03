@@ -327,7 +327,7 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	const DWORD N = (dwDuration * dwDenom - dwPos + dwDiv - 1) / dwDiv;
 	DWORD cur = 0;
 
-	HWND hwnd;
+	HWND hwnd = 0;
 	if(g_fProgress) {
 		hwnd = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_PROGRESS), NULL, ProgressDlgProc);
 		SendDlgItemMessage(hwnd, IDC_PROGRESSBAR, PBM_SETRANGE32, 0, N);
@@ -339,7 +339,7 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 		dwPos += dwDiv;
 		if(g_fProgress) SetProgress(hwnd, ++cur, N);
 	}
-	DestroyWindow(hwnd);
+	if(g_fProgress) DestroyWindow(hwnd);
 }
 
 static INT GetArchiveInfoImp(HLOCAL *lphInf, LPSTR filename)
