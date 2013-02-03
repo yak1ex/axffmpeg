@@ -144,7 +144,12 @@ static std::pair<HANDLE, HANDLE> InvokeProcess(const std::string &sCommandLine)
 	return std::pair<HANDLE, HANDLE>(0, 0);
 }
 
-static unsigned long GetDurationByFile(LPSTR filename)
+struct MetaInfo
+{
+	DWORD duration, width, height;
+};
+
+static void GetMetaInfo(LPSTR filename, MetaInfo &mi)
 {
 	if(g_sFFprobePath.empty() && !g_fWarned) {
 		g_fWarned = true;
@@ -154,9 +159,9 @@ static unsigned long GetDurationByFile(LPSTR filename)
 		g_fWarned = true;
 		MessageBox(NULL, "Path of ffmpeg.exe is not specified.", "axffmpeg.spi", MB_ICONEXCLAMATION | MB_OK);
 	}
-	std::string s = std::string("\"") + g_sFFprobePath + "\" \"" + filename + "\" -v warning -show_entries format=duration -of csv";
+	std::string s = std::string("\"") + g_sFFprobePath + "\" \"" + filename + "\" -v warning -show_entries format=duration:stream=width,height -of csv";
 	std::pair<HANDLE, HANDLE> handle_pair = InvokeProcess(s);
-	unsigned long duration = 0;
+	mi.duration = mi.width = mi.height = 0;
 	if(handle_pair.first) {
 		std::string s;
 		DWORD dwLen;
@@ -166,14 +171,32 @@ static unsigned long GetDurationByFile(LPSTR filename)
 		}
 		if(dwLen) s += std::string(&buf[0], &buf[0] + dwLen);
 		const char* p = s.c_str();
-		while(*p && *p != ',') ++p;
-		if(*p) ++p;
-		duration = std::strtoul(p, 0, 10);
+		DEBUG_LOG(<< "GetMetaInfo(" << filename << ") : " << p << std::endl);
+		while(*p) {
+			switch(*p) {
+			case 's': // stream
+				while(*p && *p != ',') ++p;
+				if(*p) ++p;
+				if('0' <= *p && *p <= '9') {
+					mi.width = std::max(mi.width, std::strtoul(p, 0, 10));
+					while(*p && *p != ',') ++p;
+					if(*p) ++p;
+					mi.height = std::max(mi.height, std::strtoul(p, 0, 10));
+				}
+				break;
+			case 'f': // format
+				while(*p && *p != ',') ++p;
+				if(*p) ++p;
+				mi.duration = std::strtoul(p, 0, 10);
+				break;
+			}
+			while(*p && *p != '\n') ++p;
+			if(*p) ++p;
+		}
 		CloseHandle(handle_pair.first);
 		CloseHandle(handle_pair.second);
 	}
-	DEBUG_LOG(<< "GetDurationByFile(" << filename << ") : " << duration << std::endl);
-	return duration;
+	DEBUG_LOG(<< "GetMetaInfo(" << filename << ") : " << mi.duration << ',' << mi.width << ',' << mi.height << std::endl);
 }
 
 static unsigned long filesize(const char* filename)
@@ -279,7 +302,9 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	DEBUG_LOG(<< "GetArchiveInfoImp(" << v1.size() << ',' << v2.size() << ',' << filename << ')' << std::endl);
 
 	DWORD timestamp = filetime(filename);
-	DWORD dwDuration = GetDurationByFile(filename);
+	MetaInfo mi;
+	GetMetaInfo(filename, mi);
+	DWORD dwDuration = mi.duration;
 	if(dwDuration == 0) {
 		v2.push_back(std::vector<char>());
 		SetErrorImage(v2);
