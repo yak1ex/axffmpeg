@@ -149,6 +149,12 @@ struct MetaInfo
 	DWORD duration, width, height;
 };
 
+// Assuming 24 bits BMP
+static unsigned long bmpsize(DWORD dwWidth, DWORD dwHeight)
+{
+	return ((dwWidth * 3 + 3) / 4 * 4) * dwHeight + 54;
+}
+
 static void GetMetaInfo(LPSTR filename, MetaInfo &mi)
 {
 	if(g_sFFprobePath.empty() && !g_fWarned) {
@@ -197,6 +203,7 @@ static void GetMetaInfo(LPSTR filename, MetaInfo &mi)
 		CloseHandle(handle_pair.second);
 	}
 	DEBUG_LOG(<< "GetMetaInfo(" << filename << ") : " << mi.duration << ',' << mi.width << ',' << mi.height << std::endl);
+	DEBUG_LOG(<< bmpsize(mi.width, mi.height) << std::endl);
 }
 
 static unsigned long filesize(const char* filename)
