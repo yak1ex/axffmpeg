@@ -35,7 +35,7 @@ CAPTION "About axffmpeg.spi"
 FONT 8, "MS Shell Dlg", 400, 0, 1
 BEGIN
     DEFPUSHBUTTON   "OK", IDOK, 46, 52, 50, 14
-    LTEXT           "axffmpeg.spi  v0.02 (2013/01/22)", IDC_STATIC, 10, 7, 116, 10, SS_LEFT
+    LTEXT           "axffmpeg.spi  v0.03 (2013/02/05)", IDC_STATIC, 10, 7, 116, 10, SS_LEFT
     LTEXT           "Plugin to handle a movie file", IDC_STATIC, 17, 17, 100, 12, SS_LEFT
     LTEXT           "Written by Yak!", IDC_STATIC, 17, 38, 62, 12, SS_LEFT
     LTEXT           "as an image container", IDC_STATIC, 52, 26, 85, 12, SS_LEFT
@@ -91,12 +91,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Yak!"
             VALUE "FileDescription", "axffmpeg.spi - Plugin to handle a movie as an image container"
-            VALUE "FileVersion", "Ver 0.02 (2013/01/22)"
+            VALUE "FileVersion", "Ver 0.03 (2013/02/05)"
             VALUE "InternalName", "axffmpeg.spi"
             VALUE "LegalCopyright", "Written by Yak!"
             VALUE "OriginalFilename", "axffmpeg.spi"
             VALUE "ProductName", "axffmpeg.spi"
-            VALUE "ProductVersion", "Ver 0.02 (2013/01/22)"
+            VALUE "ProductVersion", "Ver 0.03 (2013/02/05)"
 #ifdef DEBUG
             VALUE "PrivateBuild", "Debug build"
 #endif
