@@ -149,7 +149,7 @@ struct MetaInfo
 	DWORD duration, width, height;
 };
 
-// Assuming 24 bits BMP
+// Currently, 24 bits BMP is forced
 static unsigned long bmpsize(DWORD dwWidth, DWORD dwHeight)
 {
 	return ((dwWidth * 3 + 3) / 4 * 4) * dwHeight + 54;
@@ -237,50 +237,50 @@ static time_t filetime(const char* filename)
 	return st.st_mtime;
 }
 
-static void SetErrorImage(std::vector<std::vector<char> > &v2)
+static void SetErrorImage(std::vector<char> &v2)
 {
 	DEBUG_LOG(<< "SetErrorImage(" << v2.size() << ')' << std::endl);
 	HRSRC hResource = FindResource(g_hInstance, MAKEINTRESOURCE(IDR_ERROR_IMAGE), RT_RCDATA);
 	DWORD dwSize = SizeofResource(g_hInstance, hResource);
 	HGLOBAL handle = LoadResource(g_hInstance, hResource);
 	char* pErrorImage = static_cast<char*>(LockResource(handle));
-	v2.back().assign(pErrorImage, pErrorImage + dwSize);
+	v2.assign(pErrorImage, pErrorImage + dwSize);
 }
 
-static void GetPictureAtPos(std::vector<std::vector<char> > &v2, DWORD dwPos, LPSTR filename)
+static void GetPictureAtPos(std::vector<char> &v2, DWORD dwPos, LPSTR filename)
 {
 	DEBUG_LOG(<< "GetPictureAtPos(" << v2.size() << ',' << dwPos << ',' << filename << ')' << std::endl);
 	char szBuf[20];
 	wsprintf(szBuf, "%d:%02d:%02d", dwPos / 3600, dwPos / 60 % 60, dwPos % 60);
-	std::string s = std::string("\"") + g_sFFmpegPath + "\" -ss " + szBuf + " -i \"" + filename + "\" -v quiet -f image2pipe -frames 1 -vcodec png -";
+// Force 24bits BMP
+	std::string s = std::string("\"") + g_sFFmpegPath + "\" -ss " + szBuf + " -i \"" + filename + "\" -v quiet -f image2pipe -frames 1 -pix_fmt rgb24 -vcodec bmp -";
 	std::pair<HANDLE, HANDLE> handle_pair = InvokeProcess(s);
-	v2.push_back(std::vector<char>());
 	if(handle_pair.first) {
 		DWORD dwLen;
 		std::vector<char> buf(32768);
 		while(ReadFile(handle_pair.first, &buf[0], buf.size(), &dwLen, 0)) {
-			v2.back().insert(v2.back().end(), &buf[0], &buf[0] + dwLen);
+			v2.insert(v2.end(), &buf[0], &buf[0] + dwLen);
 		}
-		if(dwLen) v2.back().insert(v2.back().end(), &buf[0], &buf[0] + dwLen);
+		if(dwLen) v2.insert(v2.end(), &buf[0], &buf[0] + dwLen);
 		CloseHandle(handle_pair.first);
 		CloseHandle(handle_pair.second);
 	}
-	DEBUG_LOG(<< "GetPictureAtPos(" << filename << ") : " << v2.back().size() << std::endl);
-	if(v2.back().size() == 0) {
+	DEBUG_LOG(<< "GetPictureAtPos(" << filename << ") : " << v2.size() << std::endl);
+	if(v2.size() == 0) {
 		SetErrorImage(v2);
 	}
 }
 
-static void SetArchiveInfo(std::vector<SPI_FILEINFO> &v1, std::vector<std::vector<char> > &v2, DWORD dwPos, DWORD timestamp)
+static void SetArchiveInfo(std::vector<SPI_FILEINFO> &v1, DWORD dwSize, DWORD dwPos, DWORD timestamp)
 {
 	SPI_FILEINFO sfi = {
 		{ 'F', 'F', 'M', 'P', 'E', 'G', '\0', '\0' },
 		dwPos,
-		v2.back().size(),
-		v2.back().size(),
+		dwSize,
+		dwSize,
 		timestamp,
 	};
-	wsprintf(sfi.filename, "%08d.png", v1.size());
+	wsprintf(sfi.filename, "%08d.bmp", v1.size());
 	v1.push_back(sfi);
 }
 
@@ -314,8 +314,8 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	DWORD dwDuration = mi.duration;
 	if(dwDuration == 0) {
 		v2.push_back(std::vector<char>());
-		SetErrorImage(v2);
-		SetArchiveInfo(v1, v2, 0, timestamp);
+		SetErrorImage(v2.back());
+		SetArchiveInfo(v1, v2.back().size(), 0, timestamp);
 		return;
 	}
 	DWORD dwDenom = g_fImages  ? g_nImages : 1;
@@ -324,22 +324,13 @@ static void GetArchiveInfoImp(std::vector<SPI_FILEINFO> &v1, std::vector<std::ve
 	dwDenom *= 2;
 	dwDiv *= 2;
 
-	const DWORD N = (dwDuration * dwDenom - dwPos + dwDiv - 1) / dwDiv;
-	DWORD cur = 0;
+	const DWORD dwSize = bmpsize(mi.width, mi.height);
 
-	HWND hwnd = 0;
-	if(g_fProgress) {
-		hwnd = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_PROGRESS), NULL, ProgressDlgProc);
-		SendDlgItemMessage(hwnd, IDC_PROGRESSBAR, PBM_SETRANGE32, 0, N);
-		SetProgress(hwnd, cur, N);
-	}
 	while(dwPos < dwDuration * dwDenom) {
-		GetPictureAtPos(v2, dwPos / dwDenom, filename);
-		SetArchiveInfo(v1, v2, dwPos, timestamp);
+		v2.push_back(std::vector<char>());
+		SetArchiveInfo(v1, dwSize, dwPos / dwDenom, timestamp);
 		dwPos += dwDiv;
-		if(g_fProgress) SetProgress(hwnd, ++cur, N);
 	}
-	if(g_fProgress) DestroyWindow(hwnd);
 }
 
 static INT GetArchiveInfoImp(HLOCAL *lphInf, LPSTR filename)
@@ -462,6 +453,9 @@ INT PASCAL GetFile(LPSTR buf, LONG len, LPSTR dest, UINT flag, FARPROC prgressCa
 		for(std::size_t i = 0; i < size; ++i) {
 			if(value.first[i].position == std::size_t(len)) {
 				DEBUG_LOG(<< "GetFile(): position found" << std::endl);
+				if(value.second[i].size() == 0) {
+					GetPictureAtPos(value.second[i], value.first[i].position, buf);
+				}
 				if((flag>>8) & 7) { // memory
 					if(dest) {
 						DEBUG_LOG(<< "GetFile(): size: " << value.second[i].size() << " head: " << value.second[i][0] << value.second[i][1] << value.second[i][2] << value.second[i][3] << std::endl);

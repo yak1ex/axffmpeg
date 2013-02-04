@@ -22,7 +22,7 @@
 
 
 
-IDR_ERROR_IMAGE    RCDATA         ".\\error.png"
+IDR_ERROR_IMAGE    RCDATA         ".\\error.bmp"
 
 
 
