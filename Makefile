@@ -15,7 +15,7 @@ VER=0_03
 
 CXX = i686-w64-mingw32-g++
 ifdef DEBUG
-CXXFLAGS = -DDEBUG -Wall -O3 -flto -I /usr/local/include
+CXXFLAGS = -DDEBUG -Wall -O3 -flto -I /usr/local/include -I ./odstream
 WINDRESFLAGS = -D DEBUG
 else
 CXXFLAGS = -Wall -O3 -flto -I /usr/local/include
@@ -27,9 +27,9 @@ LIBS = -L/usr/lib/w32api -lcomctl32
 all: axffmpeg.spi
 
 axffmpeg.o: axffmpeg.cpp
-odstream.o: odstream.cpp odstream.hpp
+odstream/odstream.o: odstream/odstream.cpp odstream/odstream.hpp
 axffmpeg.spi: axffmpeg.o axffmpeg.ro libodstream.a axffmpeg.def
-libodstream.a: odstream.o
+libodstream.a: odstream/odstream.o
 	ar r $@ $^
 
 release-clean:
