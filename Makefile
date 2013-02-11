@@ -86,4 +86,4 @@ release:
 	make tag strip dist
 
 clean:
-	-rm -rf *.o *.spi *.ro release
+	-rm -rf *.o *.a *.spi *.ro release
