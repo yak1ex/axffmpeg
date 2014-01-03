@@ -9,14 +9,15 @@
 #       $Id$
 #
 
+name=axffmpeg
 version=`echo $1 | sed 's,_,.,g'`
 major=`echo $1 | sed 's@_0*@,@g'`
 date=`date +%Y/%m/%d`
 version2=`date +$major,%Y,%-m%d`
 echo $version $date $version2
-for i in axffmpeg.cpp axffmpeg.rc axffmpeg.txt; do
-    sed -i.bak "s,[0-9]\.[0-9][0-9] (..../../..),$version ($date),;s,[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9] Yak!,$date Yak!,;s@\(FILE\|PRODUCT\)VERSION [0-9]*,[0-9]*,[0-9]*,[0-9]*@\1VERSION $version2@g" $i
-    if [ $i = axffmpeg.txt ]; then
+for i in ${name}.cpp ${name}.rc ${name}.txt; do
+    sed -i.bak "s,[0-9]\.[0-9][0-9] (..../../..),$version ($date),;s,[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9] Yak!,$date Yak!,;s@\(FILE\|PRODUCT\)VERSION\( *\)[0-9]*,[0-9]*,[0-9]*,[0-9]*@\1VERSION\2$version2@g" $i
+    if [ $i = ${name}.txt ]; then
         u2d $i
     fi
     diff -u $i.bak $i
