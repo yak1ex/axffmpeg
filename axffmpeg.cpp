@@ -89,8 +89,7 @@ static INT IsSupportedImp(LPSTR filename, LPBYTE pb)
 			++end;
 		}
 		std::string ext(start, end);
-		if(name.size() <= ext.size()) continue;
-		if(!lstrcmpi(name.substr(name.size() - ext.size()).c_str(), ext.c_str())) {
+		if(name.size() > ext.size() && !lstrcmpi(name.substr(name.size() - ext.size()).c_str(), ext.c_str())) {
 			return SPI_SUPPORT_YES;
 		}
 		++start;
